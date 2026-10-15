@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Help Us Build What's Next — Hidden Money Survey</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="bg-scene" aria-hidden="true">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+    <div class="blob blob-4"></div>
+  </div>
+
+  <!-- ===== SURVEY VIEW ===== -->
+  <main id="survey-view" class="stage">
+    <div class="progress-wrap">
+      <div class="progress-labels">
+        <span id="progress-text">Let's begin</span>
+        <span id="progress-pct">0%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+    </div>
+
+    <section id="card" class="card">
+      <!-- content injected by app.js -->
+    </section>
+
+    <div class="nav-row">
+      <button id="back-btn" class="btn-ghost" type="button">&#8592; Back</button>
+      <button id="next-btn" class="btn-primary" type="button">Next &#8594;</button>
+    </div>
+    <p class="powered">Takes about 3 minutes &middot; Your answers shape what we build next</p>
+  </main>
+
+  <!-- ===== RESULTS DASHBOARD (owner) ===== -->
+  <main id="admin-view" class="stage hidden">
+    <header class="admin-header">
+      <div>
+        <h1 class="admin-title">Survey Results</h1>
+        <p class="admin-sub" id="admin-count">0 responses</p>
+      </div>
+      <div class="admin-actions">
+        <button id="export-btn" class="btn-primary" type="button">&#8681; Export CSV</button>
+        <button id="clear-btn" class="btn-danger" type="button">Clear all data</button>
+        <a href="#/" class="btn-ghost">&#8592; Back to survey</a>
+      </div>
+    </header>
+
+    <section class="admin-panel">
+      <h2 class="admin-h2">CRM / webhook connection</h2>
+      <p class="admin-note">Paste a webhook URL from your CRM, Zapier, Make, or a Google Apps Script. Every new response is POSTed there automatically (JSON), and always saved here too.</p>
+      <div class="webhook-row">
+        <input id="webhook-input" type="url" placeholder="https://your-crm.com/webhook/..." />
+        <button id="save-webhook-btn" class="btn-primary" type="button">Save</button>
+      </div>
+      <p class="admin-note" id="webhook-status"></p>
+    </section>
+
+    <section id="charts" class="charts"></section>
+
+    <section class="admin-panel">
+      <h2 class="admin-h2">Individual responses</h2>
+      <div id="responses-table-wrap"></div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <a href="#admin" class="footer-link">Owner? View results &rarr;</a>
+  </footer>
+
+  <canvas id="confetti" aria-hidden="true"></canvas>
+  <script src="app.js"></script>
+</body>
+</html>
