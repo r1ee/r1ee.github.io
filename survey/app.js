@@ -109,7 +109,7 @@
      so the collector URL must live here, not in the admin panel.
      Owner panel can still override it locally for testing. */
   var CONFIG = {
-    webhookUrl: "" // e.g. "https://script.google.com/macros/s/AKfyc.../exec"
+    webhookUrl: "https://script.google.com/macros/s/AKfycbwvFj_zHY_2_hencsV41Ml_O-QCCNiqq-NSW6ta-29SohmgO7Z38U0WSbUzyDvSUGdY/exec"
   };
 
   function getWebhookUrl() {
