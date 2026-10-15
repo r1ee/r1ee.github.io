@@ -402,29 +402,55 @@
   });
 
   /* ---------------- submission ---------------- */
+  function getVisitorIp() {
+    // Best-effort client-side IP lookup (static hosting has no server to read it from).
+    // Resolves "" on failure/timeout so submission is never blocked.
+    return new Promise(function (resolve) {
+      var done = false;
+      function finish(v) { if (!done) { done = true; resolve(v); } }
+      setTimeout(function () { finish(""); }, 2500);
+      try {
+        fetch("https://api.ipify.org?format=json")
+          .then(function (r) { return r.json(); })
+          .then(function (d) { finish(d && d.ip ? d.ip : ""); })
+          .catch(function () { finish(""); });
+      } catch (e) { finish(""); }
+    });
+  }
+
   function submit() {
-    var record = { ts: new Date().toISOString(), answers: {} };
+    var record = { ts: new Date().toISOString(), ip: "", answers: {} };
     QUESTIONS.forEach(function (q) {
       var a = answers[q.id];
       if (q.type === "single") record.answers[q.id] = typeof a === "number" ? q.options[a] : "";
       else if (q.type === "rank") record.answers[q.id] = (a || []).map(function (i) { return q.options[i]; });
       else record.answers[q.id] = a || "";
     });
-    var all = loadResponses();
-    all.push(record);
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(all)); } catch (e) {}
 
-    // fire-and-forget webhook to CRM / collector.
-    // Transport = GET with encoded payload: Apps Script answers POST with a
-    // 302 redirect, and browsers rewrite redirected POSTs to GET (body lost).
-    // GET survives the redirect intact. doPost is kept for other CRMs.
-    var hook = getWebhookUrl();
-    if (hook) {
-      try {
-        fetch(hook + (hook.indexOf("?") > -1 ? "&" : "?") + "d=" + encodeURIComponent(JSON.stringify(record)))
-          .catch(function () {});
-      } catch (e) {}
+    // Send exactly once: as soon as the IP resolves, or after 3s without it.
+    var sent = false;
+    function sendNow(ip) {
+      if (sent) return;
+      sent = true;
+      record.ip = ip || "";
+      var all = loadResponses();
+      all.push(record);
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(all)); } catch (e) {}
+
+      // fire-and-forget webhook to CRM / collector.
+      // Transport = GET with encoded payload: Apps Script answers POST with a
+      // 302 redirect, and browsers rewrite redirected POSTs to GET (body lost).
+      // GET survives the redirect intact.
+      var hook = getWebhookUrl();
+      if (hook) {
+        try {
+          fetch(hook + (hook.indexOf("?") > -1 ? "&" : "?") + "d=" + encodeURIComponent(JSON.stringify(record)))
+            .catch(function () {});
+        } catch (e) {}
+      }
     }
+    getVisitorIp().then(sendNow);
+    setTimeout(function () { sendNow(""); }, 3000);
   }
 
   /* ---------------- confetti ---------------- */
