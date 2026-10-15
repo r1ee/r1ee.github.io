@@ -204,20 +204,20 @@
         '<input id="free-text" type="email" class="free-input email-input" placeholder="' + (q.placeholder || "") + '" />';
     }
 
-    swapContent(html);
-
-    // restore existing answer
-    var existing = answers[q.id];
-    if (q.type === "single" && typeof existing === "number") {
-      selectOption(existing, false);
-    } else if (q.type === "rank" && Array.isArray(existing)) {
-      existing.forEach(function (idx, rankPos) { markRank(idx, rankPos + 1); });
-      updateRankHint();
-    } else if ((q.type === "text" || q.type === "email") && existing) {
-      document.getElementById("free-text").value = existing;
-    }
-    refreshNextState();
-    bindQuestionEvents(q);
+    swapContent(html, function () {
+      // restore existing answer (back-navigation editing)
+      var existing = answers[q.id];
+      if (q.type === "single" && typeof existing === "number") {
+        selectOption(existing);
+      } else if (q.type === "rank" && Array.isArray(existing)) {
+        existing.forEach(function (idx, rankPos) { markRank(idx, rankPos + 1); });
+        updateRankHint();
+      } else if ((q.type === "text" || q.type === "email") && existing) {
+        document.getElementById("free-text").value = existing;
+      }
+      refreshNextState();
+      bindQuestionEvents(q);
+    });
   }
 
   function renderWelcome() {
@@ -256,7 +256,7 @@
     fireConfetti();
   }
 
-  function swapContent(html) {
+  function swapContent(html, afterRender) {
     if (animating) return;
     animating = true;
     card.classList.remove("q-enter");
@@ -268,6 +268,8 @@
       void card.offsetWidth;
       card.classList.add("q-enter");
       animating = false;
+      // binding must happen AFTER the DOM exists — never before
+      if (afterRender) afterRender();
     }, 240);
   }
 
@@ -373,9 +375,15 @@
   }
 
   /* ---------------- navigation ---------------- */
+  var submitted = false;
   nextBtn.addEventListener("click", function () {
     if (nextBtn.disabled || animating) return;
     if (step >= QUESTIONS.length) return;
+    // submit BEFORE incrementing step, while step still points at the last question
+    if (step === QUESTIONS.length - 1 && !submitted) {
+      submitted = true;
+      submit();
+    }
     step++;
     renderStep();
   });
@@ -406,26 +414,18 @@
     all.push(record);
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(all)); } catch (e) {}
 
-    // fire-and-forget webhook to CRM / collector (text/plain avoids CORS preflight)
+    // fire-and-forget webhook to CRM / collector.
+    // Transport = GET with encoded payload: Apps Script answers POST with a
+    // 302 redirect, and browsers rewrite redirected POSTs to GET (body lost).
+    // GET survives the redirect intact. doPost is kept for other CRMs.
     var hook = getWebhookUrl();
     if (hook) {
       try {
-        fetch(hook, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify(record)
-        }).catch(function () {});
+        fetch(hook + (hook.indexOf("?") > -1 ? "&" : "?") + "d=" + encodeURIComponent(JSON.stringify(record)))
+          .catch(function () {});
       } catch (e) {}
     }
   }
-
-  var submitted = false;
-  nextBtn.addEventListener("click", function () {
-    if (step === QUESTIONS.length - 1 && !submitted) {
-      submitted = true;
-      submit();
-    }
-  });
 
   /* ---------------- confetti ---------------- */
   function fireConfetti() {
